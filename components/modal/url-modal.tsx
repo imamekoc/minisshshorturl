@@ -59,55 +59,84 @@ const UrlModal = () => {
       keyword: ''
     }
   });
+const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  try {
+    setLoading(true);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    let title = values.keyword; // Default title to keyword
+
     try {
-      setLoading(true);
-
-      // Get URL title
-      // const urlResponse = await axios.get(
-      //   `https://api.allorigins.win/get?url=${encodeURIComponent(values.url)}`
-      // );
-
-      // const matches = urlResponse.data.contents.match(/<title>(.*?)<\/title>/);
-      const title = values.keyword;
-
-      const response = await axios.post('/api/link', values, {
-        headers: {
-          'long-url-title': title
+      // Attempt to get URL title
+      const urlResponse = await axios.get(
+        `https://api-title.vercel.app/api/title?url=${encodeURIComponent(values.url)}`,
+        {
+          headers: {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en,en-US;q=0.9,id;q=0.8',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'Referer': 'https://www.google.com/'
+          }
         }
-      });
+      );
 
-      if (response.data.success) {
-        form.reset();
-        urlModal.onClose();
-        router.push('/admin/url?page=1&per_page=10');
-        router.refresh();
-
-        toast({
-          variant: 'success',
-          title: 'Success!',
-          description: 'Short URL has been created.'
-        });
+      // Use the title from the API response if available
+      if (urlResponse.data && urlResponse.data.title) {
+        title = urlResponse.data.title;
       }
-    } catch (error: any) {
-      if (error.response.data.error === 'Please enter different keyword.') {
+    } catch (apiError) {
+      // Log the error but continue with default title
+      console.error('Failed to fetch URL title:', apiError);
+    }
+
+    // Post data to the server with the title
+    const response = await axios.post('/api/link', { ...values, title }, {
+      headers: {
+        'long-url-title': title
+      }
+    });
+
+    if (response.data.success) {
+      form.reset();
+      urlModal.onClose();
+      router.push('/admin/url?page=1&per_page=10');
+      router.refresh();
+
+      toast({
+        variant: 'success',
+        title: 'Success!',
+        description: 'Short URL has been created.'
+      });
+    }
+  } catch (error: any) {
+    // Improved error handling
+    if (error.response && error.response.data) {
+      const errorMessage = error.response.data.error || 'Unknown error occurred';
+
+      if (errorMessage === 'Please enter different keyword.') {
         form.setError('keyword', {
           type: 'manual',
-          message: error.response.data.error
+          message: errorMessage
         });
       } else {
-        console.log(error);
         toast({
           variant: 'destructive',
           title: 'Uh oh! Something went wrong.',
-          description: 'There was a problem with your request.'
+          description: errorMessage
         });
       }
-    } finally {
-      setLoading(false);
+    } else {
+      console.error('Request error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Uh oh! Something went wrong.',
+        description: 'There was a problem with your request.'
+      });
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleGenerateKeyword = () => {
     const randomKeyword = generateRandomKeyword();
