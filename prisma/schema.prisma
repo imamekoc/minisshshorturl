@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url  	    = env("DATABASE_URL")
+}
+
+model Link {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  keyword     String    @unique
+  url         String
+  ip          String
+  click       Int       @default(0)
+  log         Log[]     @relation("LinkToLog")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Log {
+  id          String    @id @default(uuid())
+  linkKeyword String
+  link        Link      @relation("LinkToLog", fields: [linkKeyword], references: [keyword], onDelete: Cascade)
+  referrer    String    @db.Text
+  userAgent   String    @db.Text
+  ip          String
+  countryCode String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([linkKeyword])
+}
