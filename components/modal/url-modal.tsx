@@ -23,6 +23,17 @@ import {
   FormMessage
 } from '@/components/ui/form';
 
+// Fungsi untuk menghasilkan keyword acak
+const generateRandomKeyword = (length = 4) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    result += chars[randomIndex];
+  }
+  return result;
+};
+
 const formSchema = z.object({
   url: z.string().toLowerCase().url({ message: 'Please enter a valid URL.' }),
   keyword: z
@@ -54,11 +65,12 @@ const UrlModal = () => {
       setLoading(true);
 
       // Get URL title
-      const urlResponse = await axios.get(
-        `https://api.allorigins.win/get?url=${encodeURIComponent(values.url)}`
-      );
-      const matches = urlResponse.data.contents.match(/<title>(.*?)<\/title>/);
-      const title = encodeURI(matches?.[1] ?? values.url);
+      // const urlResponse = await axios.get(
+      //   `https://api.allorigins.win/get?url=${encodeURIComponent(values.url)}`
+      // );
+
+      // const matches = urlResponse.data.contents.match(/<title>(.*?)<\/title>/);
+      const title = values.keyword;
 
       const response = await axios.post('/api/link', values, {
         headers: {
@@ -97,6 +109,11 @@ const UrlModal = () => {
     }
   };
 
+  const handleGenerateKeyword = () => {
+    const randomKeyword = generateRandomKeyword();
+    form.setValue('keyword', randomKeyword);
+  };
+
   return (
     <Modal
       title='Create Short URL'
@@ -124,23 +141,39 @@ const UrlModal = () => {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name='keyword'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Short URL Keyword</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder='Example: short'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+<div className='pt-6 flex items-center gap-4 w-full'>
+  <div className='flex-grow'>
+  <FormField
+      control={form.control}
+      name='keyword'
+      render={({ field }) => (
+        <FormItem className='flex-grow'>
+          <FormControl>
+            <Input
+              disabled={loading}
+              placeholder='Example: short'
+              {...field}
+              className='w-full'
             />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  </div>
+  <div className='flex-shrink-0'>
+    <Button
+      type='button'
+      disabled={loading}
+      onClick={handleGenerateKeyword}
+      className='w-full md:w-auto bg-blue-500 hover:bg-blue-600'
+    >
+      Generate
+    </Button>
+  </div>
+</div>
+
+
             <div className='pt-6 space-x-2 flex items-center justify-end w-full'>
               <Button
                 type='button'
